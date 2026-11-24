@@ -67,6 +67,7 @@ class Painter:
         self.phase = "paint"
         self.guard_cycles = 0
         self.cycle_t0 = time.time()
+        self.guard_since = 0.0
         self.total = len(self.route)
         self._build_desired()
         self._assign_slices()
@@ -85,9 +86,26 @@ class Painter:
         self.phase = "guard"
         self.ok_total = 0
         self.cycle_t0 = time.time()
+        self.guard_since = time.time()
+        self.suspects.clear()
+        self._sus_was = 0
         self._assign_slices()
         for tok in self.tokens:
             tok.pos = tok.start
+
+    def _enter_paint(self) -> None:
+        """地盘被大面积破坏时，退回全量重绘（只靠巡检中心补不回来）。"""
+        self.route = list(self.paint_route)
+        self.total = len(self.route)
+        self.phase = "paint"
+        self.ok_total = 0
+        self.cycle_t0 = time.time()
+        self.suspects.clear()
+        self._sus_was = 0
+        self._assign_slices()
+        for tok in self.tokens:
+            tok.pos = tok.start
+            tok.dir = 1
 
     @property
     def guard_route(self):
@@ -343,6 +361,12 @@ class Painter:
                 next_report = time.time() + 5
             if self.limit and self.ok_total >= self.limit:
                 self.stop = True
+            elif (self.phase == "guard"
+                  and time.time() - self.guard_since > 90
+                  and len(self.suspects) > max(512, self.total // 4)):
+                print(f"[phase] 可疑像素 {len(self.suspects)} > {max(512, self.total // 4)}，"
+                      f"判定为地盘被大面积破坏，回到全量重绘")
+                self._enter_paint()
             elif self.ok_total >= self.total:
                 if self.once:
                     self.stop = True

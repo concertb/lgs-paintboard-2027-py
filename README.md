@@ -43,6 +43,8 @@ e2 = (-R, R+1) = (-2, 3)
   可疑像素 > 512（还在首遍绘制）时自动退回纯绘制，避免每笔做全表最近邻。
 - 观察连接单独收公共画面（晚 `public_delay`），公共画面里被改过的像素也会进 suspects；
   但实时性靠声呐，不靠它。
+- **兜底**：如果可疑像素超过全图 1/4（地盘被人整片覆盖 / 画布被重置），自动切回全量重绘，
+  画完再回巡检。切巡检后 90 秒内不判定，避免公共画面的 60 秒延迟造成来回抖动。
 
 ## 实测（2026-11-24，测试服，64 token）
 
@@ -101,6 +103,25 @@ python -m pb draw --image assets/target.webp --size 120 --place 440,1 --tokens 6
 # 已经画好，直接开始守图
 python -m pb draw --size 120 --place 440,1 --tokens 64 --guard-only
 ```
+
+### 手动运行（不依赖任何常驻工具）
+
+项目根目录自带两个双击即可运行的启动器，会自动 `cd` 到脚本目录并找 Python：
+
+| 文件 | 作用 |
+| --- | --- |
+| `run_guard.cmd` | **只守图**。图已经画好时日常挂这个 |
+| `run_draw.cmd` | 先全量重绘一遍，画完自动切到巡检守图 |
+
+等价命令行（PowerShell，需在项目目录下）：
+
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+python -m pb draw --size 120 --place 440,1 --tokens 64 --guard-only --out out
+```
+
+token 在 `out/tokens.json`（`uid 910000000..910000063`，测试服自动申领的 64 个）。
+换账号/正式服时把 `--tokens-file` 指向自己的文件即可。
 
 测试服（`issuance.access_mode = "none"`）可以直接用任意 uid 换 token：
 脚本首次运行会自动 `POST /api/paint-token {"uid": N}` 领一批并存进 `out/tokens.json`。
