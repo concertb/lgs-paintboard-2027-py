@@ -1,0 +1,7 @@
+out/
+assets/
+__pycache__/
+*.pyc
+*.log
+tokens*.json
+*.ppm
