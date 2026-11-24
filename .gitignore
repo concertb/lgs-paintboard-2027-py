@@ -5,3 +5,4 @@ __pycache__/
 *.log
 tokens*.json
 *.ppm
+*ghcred*
